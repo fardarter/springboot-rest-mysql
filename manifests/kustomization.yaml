@@ -1,0 +1,5 @@
+namespace: spring-app
+resources:
+  - namespace.yaml
+  - springboot.yaml
+  - mysql.yaml

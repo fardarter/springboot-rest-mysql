@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-db-mysql
+  labels:
+    app: spring-db-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-db-mysql
+  template:
+    metadata:
+      labels:
+        app: spring-db-mysql
+    spec:
+      containers:
+      - name: spring-db-mysql
+        image: mysql:8.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MYSQL_USER
+          value: spring-user
+        - name: MYSQL_ROOT_PASSWORD
+          value: root
+        - name: MYSQL_PASSWORD
+          value: secret
+        - name: MYSQL_DATABASE
+          value: test
+        resources:
+          requests:
+            memory: "150Mi"
+            cpu: "100m"
+          limits: 
+            memory: "175Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-db-mysql
+spec:
+  selector:
+    app: spring-db-mysql
+  ports:
+    - port: 3306
+      targetPort: 3306

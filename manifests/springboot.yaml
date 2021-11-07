@@ -1,0 +1,62 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spring-rest-mysql
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  labels:
+    app: spring-rest-mysql
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: /spring-rest-mysql(/|$)(.*)
+        backend:
+          service:
+            name: spring-rest-mysql
+            port: 
+              number: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-rest-mysql
+  labels:
+    app: spring-rest-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-rest-mysql
+  template:
+    metadata:
+      labels:
+        app: spring-rest-mysql
+    spec:
+      containers:
+      - name: spring-rest-mysql
+        image: docker.mycompany.com/spring-rest-mysql:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MYSQL_ADDR
+          value: spring-db-mysql.spring-app.svc.cluster.local
+        resources:
+          requests:
+            memory: "150Mi"
+            cpu: "100m"
+          limits: 
+            memory: "175Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-rest-mysql
+spec:
+  selector:
+    app: spring-rest-mysql
+  ports:
+    - port: 8080
+      targetPort: 8080

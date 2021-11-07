@@ -1,34 +1,77 @@
 # SpringBoot REST MySQL Example
 
 This project was developed using SpringBoot [Spring Initializr](start.spring.io) and the following dependencies were selected:
+
 1. Web
 2. JPA
 3. Lombok
 
-*Reference:* https://spring.io/guides/tutorials/bookmarks/
+*Reference:* <https://spring.io/guides/tutorials/bookmarks/>
 
 The following sections details each step to get the project up and running.
 
+## Prerequisites & k8s quickstart
+
+- maven
+- docker
+- make
+- [kind](https://kind.sigs.k8s.io/)
+- [kustomize](https://kustomize.io/) (not tested with the native kubectl kustomize command but it might work)
+
+### k8s quickstart
+
+1. Install the prerequisites and run:
+
+    ```bash
+    make set-up-kind
+    ```
+
+    Once the pods are  up, you should be able to see an api response at: `http://localhost/spring-rest-mysql/api/users`.
+
+### Other commands
+
+1. Create a container with:
+
+    ```bash
+    make docker-springboot
+    ```
+
+1. Apply the kustomize manifests (for example to minikube) with -- this may be necessary for first set-up:
+
+    ```bash
+    make make manifests
+    ```
+
 ## 1. Clone the project and build it
+
 Run the command below in your terminal to clone the project:
+
 ```
-$ git clone https://github.com/wagnerjfr/sprinboot-rest-mysql.git
+git clone https://github.com/wagnerjfr/sprinboot-rest-mysql.git
 ```
+
 Go inside project folder:
+
 ```
-$ cd sprinboot-rest-mysql
+cd sprinboot-rest-mysql
 ```
+
 Build the project:
+
 ```
-$ mvn clean package -DskipTests
+mvn clean package -DskipTests
 ```
+
 ## 2. Start MySQL locally in a Docker container
 
-Let's first create a Docker network. It will be useful in section 4. 
+Let's first create a Docker network. It will be useful in section 4.
+
 ```
-$ docker network create spring-rest-network
+docker network create spring-rest-network
 ```
+
 Now we can start the MySQL 8 container:
+
 ```
 docker run -d -p 3306:3306 --name=docker-mysql \
   --network=spring-rest-network \
@@ -38,45 +81,62 @@ docker run -d -p 3306:3306 --name=docker-mysql \
   --env="MYSQL_DATABASE=test" \
   mysql:8.0
 ```
+
 *It will take some seconds.*
 
 Run the command below to follow its initialization:
+
 ```
-$ docker logs docker-mysql
+docker logs docker-mysql
 ```
+
 MySQL is ready to use when the below output log is printed:
+
 ```console
 2019-01-11T15:58:14.022693Z 0 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: '8.0.13'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server - GPL.
 2019-01-11T15:58:14.101713Z 0 [System] [MY-011323] [Server] X Plugin ready for connections. Socket: '/var/run/mysqld/mysqlx.sock' bind-address: '::' port: 33060
 ```
 
 Try accessing MySQL container with the below command:
+
 ```
-$ docker exec -it docker-mysql mysql -uspring-user -psecret
+docker exec -it docker-mysql mysql -uspring-user -psecret
 ```
+
 You will be connected to MySQL. Type `exit` to exit.
 
 ## 3. Launch the application and interact with it
+
 From the project root folder, run the command below to launch the application:
+
 ```
-$ mvn clean spring-boot:run
+mvn clean spring-boot:run
 ```
+
 A successful output log will be:
+
 ```console
 2019-01-11 14:08:19.985  INFO 4064 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
 2019-01-11 14:08:19.989  INFO 4064 --- [           main] c.m.s.SpringRestMysqlApplication         : Started SpringRestMysqlApplication in 8.592 seconds (JVM running for 20.038)
 2019-01-11 14:08:20.125  INFO 4064 --- [           main] c.m.s.load.LoadUserDatabase              : Preloading User(id=1, name=Wagner Jose Franchin, email=wagner@test.com)
 ```
+
 ### 3.1 Curl
+
 First, lets test it using curl to get all users:
+
 ```
-$ curl -X GET "http://localhost:8080/api/users"
+curl -X GET "http://localhost:8080/api/users"
 ```
+
 The output log should be:
+
 ```console
 [{"id":1,"name":"Wagner Jose Franchin","email":"wagner@teste.com"}]
 ```
+
 ### 3.2 Swagger
+
 We can use Swagger to easily interact with the REST API.
 
 Access using your internet browser the link at <http://localhost:8080/swagger-ui/index.html>.
@@ -96,13 +156,17 @@ The following output log messages indicates that the call was successful:
 Try the other sections: GET, PUT and DELETE.
 
 ## 4. Run the REST API application in a container
+
 Let's now deploy our SpingBoot application as a Docker image and run it as a container.
 
 First, run the command below which will create the application image:
+
 ```
-$ mvn clean package docker:build -DskipTests
+mvn clean package docker:build -DskipTests
 ```
+
 The successful output of the process should be:
+
 ```console
 Successfully built 39af6a93108a
 Successfully tagged docker.mycompany.com/spring-rest-mysql:latest
@@ -116,32 +180,44 @@ Successfully tagged docker.mycompany.com/spring-rest-mysql:latest
 [INFO] Final Memory: 61M/396M
 [INFO] ------------------------------------------------------------------------
 ```
+
 Finally, run the container:
+
 ```
 docker run -d -p 9000:8080 --name=user-rest-api \
   --network=spring-rest-network \
   -e MYSQL_ADDR=docker-mysql \
   docker.mycompany.com/spring-rest-mysql:latest
 ```
-After some seconds, try to query the users using curl command on the container's port 9000: 
+
+After some seconds, try to query the users using curl command on the container's port 9000:
+
 ```
-$ curl -X GET "http://localhost:9000/api/users"
+curl -X GET "http://localhost:9000/api/users"
 ```
 
 ## 5. Cleannig up
+
 To stop MySQL and REST API application containers:
+
 ```
-$ docker stop docker-mysql user-rest-api
+docker stop docker-mysql user-rest-api
 ```
+
 To remove stopped containers:
+
 ```
-$ docker rm docker-mysql user-rest-api
+docker rm docker-mysql user-rest-api
 ```
+
 To delete the Docker images created:
+
 ```
-$ docker rmi docker.mycompany.com/spring-rest-mysql:0.0.1-SNAPSHOT docker.mycompany.com/spring-rest-mysql:latest
+docker rmi docker.mycompany.com/spring-rest-mysql:0.0.1-SNAPSHOT docker.mycompany.com/spring-rest-mysql:latest
 ```
+
 To delete Docker network:
+
 ```
-$ docker network rm spring-rest-network
+docker network rm spring-rest-network
 ```

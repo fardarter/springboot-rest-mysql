@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: configmaps-creater
+rules:
+- apiGroups: ["", "batch"]
+  resources: ["configmaps", "pods", "jobs"]
+  verbs: ["create", "get", "list", "watch", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: create-configmaps
+subjects:
+- kind: User
+  name: system:serviceaccount:spring-app:default
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: configmaps-creater 
+  apiGroup: rbac.authorization.k8s.io

@@ -1,3 +1,15 @@
+---     
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-db-mysql
+spec:
+  selector:
+    app: spring-db-mysql
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,6 +18,11 @@ metadata:
     app: spring-db-mysql
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   selector:
     matchLabels:
       app: spring-db-mysql
@@ -13,11 +30,19 @@ spec:
     metadata:
       labels:
         app: spring-db-mysql
+        waitId: mysql
     spec:
+      volumes:
+      - name: mysql-initdb
+        configMap:
+          name: mysql-initdb-config
       containers:
       - name: spring-db-mysql
         image: mysql:8.0
         imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: mysql-initdb
+          mountPath: /docker-entrypoint-initdb.d
         env:
         - name: MYSQL_USER
           value: spring-user
@@ -29,19 +54,27 @@ spec:
           value: test
         resources:
           requests:
-            memory: "150Mi"
-            cpu: "100m"
+            memory: "500Mi"
+            cpu: "300m"
           limits: 
-            memory: "175Mi"
-            cpu: "250m"
+            memory: "500Mi"
+            cpu: "400m"
+        livenessProbe:
+          exec:
+            command:
+            - bash
+            - "-c"
+            - "mysqladmin -uroot -proot ping &> /dev/null"
+          initialDelaySeconds: 10
+          periodSeconds: 3
+          successThreshold: 1
+          failureThreshold: 70
 ---
 apiVersion: v1
-kind: Service
+kind: ConfigMap
 metadata:
-  name: spring-db-mysql
-spec:
-  selector:
-    app: spring-db-mysql
-  ports:
-    - port: 3306
-      targetPort: 3306
+  name: mysql-initdb-config
+data:
+  initdb.sql: |
+    ALTER USER 'root' IDENTIFIED WITH mysql_native_password BY 'root';
+    FLUSH PRIVILEGES;

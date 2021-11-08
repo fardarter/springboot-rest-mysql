@@ -3,3 +3,8 @@ resources:
   - namespace.yaml
   - springboot.yaml
   - mysql.yaml
+  - postgres.yaml
+  - rolebindings.yaml
+  - jobs.yaml
+  - configmaps.yaml
+  - configmap-reloader.yaml

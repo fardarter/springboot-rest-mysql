@@ -1,0 +1,81 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-complete
+  namespace: spring-app
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-migration
+        image: "bitnami/kubectl:1.22"
+        args:
+          - "wait"
+          - "--selector=migrationId=postgres-migration"
+          - "--for=condition=complete"
+          - "--timeout=30m"
+          - "jobs"
+      containers:
+      - name: migration-complete
+        image: "bitnami/kubectl:1.22"
+        args:
+          - "create"
+          - "configmap"
+          - "spring-rest-configmap-migrated"
+          - "-n"
+          - "spring-app"
+          - "--from-literal=DB_ADDR=spring-db-postgres.spring-app.svc.cluster.local"
+          - "--from-literal=DB_NAME=postgresdb"
+          - "--from-literal=DB_PORT=5432"
+          - "--from-literal=DB_PREFIX=postgresql"
+          - "--from-literal=DB_DIALECT=org.hibernate.dialect.PostgreSQLDialect"
+          - "--from-literal=DDL_AUTO=validate"
+          - "--from-literal=DRIVER_CLASS_NAME=org.postgresql.Driver"
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-migration
+  labels:
+    migrationId: postgres-migration
+  namespace: spring-app
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      initContainers:
+      - name: wait-for-spring-rest
+        image: "bitnami/kubectl:1.22"
+        args:
+          - "wait"
+          - "--selector=waitId=spring-rest"
+          - "--for=condition=ready"
+          - "--timeout=30m"
+          - "pods"
+      - name: wait-for-postgres
+        image: "bitnami/kubectl:1.22"
+        args:
+          - "wait"
+          - "--selector=waitId=postgres"
+          - "--for=condition=ready"
+          - "--timeout=30m"
+          - "pods"
+      - name: wait-for-mysql
+        image: "bitnami/kubectl:1.22"
+        args:
+          - "wait"
+          - "--selector=waitId=mysql"
+          - "--for=condition=ready"
+          - "--timeout=30m"
+          - "pods"
+      containers:
+      - name: postgres-migrator
+        image: nmig-loader:latest
+        imagePullPolicy: IfNotPresent
+      restartPolicy: Never
+
+ 
+
+      

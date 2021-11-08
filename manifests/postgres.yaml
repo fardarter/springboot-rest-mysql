@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-db-postgres
+  labels:
+    app: spring-db-postgres
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: spring-db-postgres
+  template:
+    metadata:
+      labels:
+        app: spring-db-postgres
+        waitId: postgres
+    spec:
+      volumes:
+      - name: postgres-initdb
+        configMap:
+          name: postgres-initdb-config
+      containers:
+      - name: spring-db-postgres
+        image: postgres:11
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: postgres-initdb
+          mountPath: /docker-entrypoint-initdb.d
+        ports:
+          - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: spring-user
+        - name: POSTGRES_PASSWORD
+          value: secret
+        - name: PGPASSWORD
+          value: secret
+        - name: POSTGRES_DB
+          value: postgresdb
+        readinessProbe:
+          exec:
+            command: ["psql", "-U", "spring-user", "-d", "postgresdb", "-c", "SELECT 1"]
+          initialDelaySeconds: 10
+          periodSeconds: 3
+          successThreshold: 1
+          failureThreshold: 70
+        livenessProbe:
+          exec:
+            command: ["psql", "-U", "spring-user", "-d", "postgresdb", "-c", "SELECT 1"]
+          initialDelaySeconds: 10
+          periodSeconds: 3
+          successThreshold: 1
+          failureThreshold: 70
+        resources:
+          requests:
+            memory: "500Mi"
+            cpu: "300m"
+          limits: 
+            memory: "500Mi"
+            cpu: "400m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-db-postgres
+spec:
+  selector:
+    app: spring-db-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb-config
+data:
+  initdb.sql: |
+    CREATE SEQUENCE hibernate_sequence START 1;

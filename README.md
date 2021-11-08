@@ -186,7 +186,7 @@ Finally, run the container:
 ```
 docker run -d -p 9000:8080 --name=user-rest-api \
   --network=spring-rest-network \
-  -e MYSQL_ADDR=docker-mysql \
+  -e DB_ADDR=docker-mysql \
   docker.mycompany.com/spring-rest-mysql:latest
 ```
 

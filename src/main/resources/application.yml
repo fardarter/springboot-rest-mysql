@@ -1,7 +1,14 @@
 spring:
   jpa:
-    hibernate.ddl-auto: update
+    show-sql: true
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: ${DB_DIALECT:org.hibernate.dialect.MySQL8Dialect}
   datasource:
-    url: jdbc:mysql://${MYSQL_ADDR:localhost}:3306/test
+    driver-class-name: ${DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
+    url: jdbc:${DB_PREFIX:mysql}://${DB_ADDR:localhost}:${DB_PORT:3306}/${DB_NAME:test}
     username: spring-user
     password: secret
+    continue-on-error: true
